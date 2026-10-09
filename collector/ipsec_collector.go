@@ -105,6 +105,6 @@ func (c *ipsecCollector) collectMetricForProperty(property, srcdst, comment stri
 			}).Error("error parsing ipsec metric value")
 			return
 		}
-		ctx.ch <- prometheus.MustNewConstMetric(desc, prometheus.CounterValue, v, ctx.device.Name, srcdst, comment)
+		ctx.ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, v, ctx.device.Name, srcdst, comment)
 	}
 }

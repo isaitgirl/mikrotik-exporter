@@ -23,3 +23,18 @@ features:
   lte: true
   netwatch: true
   cloud: true
+  vpn_health: true
+
+vpn_health:
+  prefix: aws_prdvpc
+  summary_address: 198.18.0.10
+  devices: [test1]
+  tunnels:
+    - name: a1
+      provider: algar
+      state_address: 198.18.0.11
+      remote_address: 18.220.90.8
+    - name: u1
+      provider: unifique
+      state_address: 198.18.0.13
+      remote_address: 3.21.255.11

@@ -86,11 +86,56 @@ features:
   dhcpv6: true
   dhcpl: true
   routes: true
+  routes_detail: true
   pools: true
   optics: true
   wlanif: true
   wlansta: true
 ```
+
+`routes: true` keeps the aggregated route metrics. Use `routes_detail: true` to
+collect individual non-BGP routes from `/ip/route/print` and
+`/ipv6/route/print`. BGP prefixes are not exposed as labels; only counts by
+status are exported to avoid high Prometheus cardinality.
+
+Detailed route metrics include the destination, gateway, comment, distance
+(also used as an identity label), scope, target scope, and boolean labels `active`, `static`, `connected`, and
+`enabled`, plus `gateway_reachable` with values `true` or `false`.
+The command-line equivalent is
+`-with-routes-detail`.
+
+###### VPN health (active/standby tunnels)
+
+`vpn_health: true` reads the state written by a RouterOS health scheduler that
+keeps one tunnel active among several IPsec/BGP tunnels. Object names are
+derived from `prefix`: address-list `<prefix>_health-state` (summary
+`<mode>-<A|U|N>-<tunnel>` at `summary_address`, per-tunnel state
+`<healthy><failures><successes>` at `state_address`), BGP peer
+`<prefix>_<tunnel>_bgp`, export filter comment `<prefix>_<tunnel>_out-active`
+and IPsec data policies commented `<prefix>_<tunnel>_data-*`.
+
+```yaml
+features:
+  vpn_health: true
+vpn_health:
+  prefix: aws_prdvpc
+  summary_address: 198.18.0.10   # default
+  devices: [my_router]           # optional; empty = all devices
+  tunnels:
+    - {name: a1, provider: algar, state_address: 198.18.0.11, remote_address: 18.220.90.8}
+    - {name: u1, provider: unifique, state_address: 198.18.0.13, remote_address: 3.21.255.11}
+```
+
+Metrics (labels `name`, `address`, `tunnel`, `provider`):
+`mikrotik_vpn_monitor_up`, `mikrotik_vpn_mode{mode,desired}`,
+`mikrotik_vpn_tunnel_active`, `mikrotik_vpn_tunnel_healthy`,
+`mikrotik_vpn_tunnel_consecutive_failures`, `mikrotik_vpn_tunnel_consecutive_successes`,
+`mikrotik_vpn_tunnel_ike_up`, `mikrotik_vpn_tunnel_ike_uptime_seconds`,
+`mikrotik_vpn_tunnel_bgp_up`, `mikrotik_vpn_tunnel_advertised_prefixes`,
+`mikrotik_vpn_tunnel_export_accept`, `mikrotik_vpn_tunnel_data_policies_enabled`
+and `mikrotik_vpn_tunnel_data_policies_established`. Only `print` commands are
+used (no installed SAs). The command-line flag is `-with-vpn-health`, but the
+tunnels must come from the config file.
 
 If you add a devices with the `srv` parameter instead of `address` the exporter will perform a DNS query
 to obtain the SRV record and discover the devices dynamically. Also, you can specify a DNS server to use

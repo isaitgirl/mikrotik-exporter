@@ -8,6 +8,7 @@ LDFLAGS+=-X main.shortSha=$(SHORTSHA)
 
 build:
 	go build -ldflags "$(LDFLAGS)" .
+	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o mikrotik_exporter-amd64 .
 
 utils:
 	go get github.com/mitchellh/gox

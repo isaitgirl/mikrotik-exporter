@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	
-
 	"fmt"
 	"net/http"
 
@@ -36,26 +34,28 @@ var (
 	user        = flag.String("user", "", "user for authentication with single device")
 	ver         = flag.Bool("version", false, "find the version of binary")
 
-	withBgp       = flag.Bool("with-bgp", false, "retrieves BGP routing infrormation")
-	withConntrack = flag.Bool("with-conntrack", false, "retrieves connection tracking metrics")
-	withRoutes    = flag.Bool("with-routes", false, "retrieves routing table information")
-	withDHCP      = flag.Bool("with-dhcp", false, "retrieves DHCP server metrics")
-	withDHCPL     = flag.Bool("with-dhcpl", false, "retrieves DHCP server lease metrics")
-	withDHCPv6    = flag.Bool("with-dhcpv6", false, "retrieves DHCPv6 server metrics")
-	withFirmware  = flag.Bool("with-firmware", false, "retrieves firmware versions")
-	withHealth    = flag.Bool("with-health", false, "retrieves board Health metrics")
-	withPOE       = flag.Bool("with-poe", false, "retrieves PoE metrics")
-	withPools     = flag.Bool("with-pools", false, "retrieves IP(v6) pool metrics")
-	withOptics    = flag.Bool("with-optics", false, "retrieves optical diagnostic metrics")
-	withW60G      = flag.Bool("with-w60g", false, "retrieves w60g interface metrics")
-	withWlanSTA   = flag.Bool("with-wlansta", false, "retrieves connected wlan station metrics")
-	withWlanIF    = flag.Bool("with-wlanif", false, "retrieves wlan interface metrics")
-	withCapsman   = flag.Bool("with-capsman", false, "retrieves capsman station metrics")
-	withMonitor   = flag.Bool("with-monitor", false, "retrieves ethernet interface monitor info")
-	withIpsec     = flag.Bool("with-ipsec", false, "retrieves ipsec metrics")
-	withLte       = flag.Bool("with-lte", false, "retrieves lte metrics")
-	withNetwatch  = flag.Bool("with-netwatch", false, "retrieves netwatch metrics")
-	withCloud     = flag.Bool("with-cloud", false, "retrives cloud services stats")
+	withBgp          = flag.Bool("with-bgp", false, "retrieves BGP routing infrormation")
+	withConntrack    = flag.Bool("with-conntrack", false, "retrieves connection tracking metrics")
+	withRoutes       = flag.Bool("with-routes", false, "retrieves routing table information")
+	withRoutesDetail = flag.Bool("with-routes-detail", false, "retrieves detailed non-BGP routes")
+	withDHCP         = flag.Bool("with-dhcp", false, "retrieves DHCP server metrics")
+	withDHCPL        = flag.Bool("with-dhcpl", false, "retrieves DHCP server lease metrics")
+	withDHCPv6       = flag.Bool("with-dhcpv6", false, "retrieves DHCPv6 server metrics")
+	withFirmware     = flag.Bool("with-firmware", false, "retrieves firmware versions")
+	withHealth       = flag.Bool("with-health", false, "retrieves board Health metrics")
+	withPOE          = flag.Bool("with-poe", false, "retrieves PoE metrics")
+	withPools        = flag.Bool("with-pools", false, "retrieves IP(v6) pool metrics")
+	withOptics       = flag.Bool("with-optics", false, "retrieves optical diagnostic metrics")
+	withW60G         = flag.Bool("with-w60g", false, "retrieves w60g interface metrics")
+	withWlanSTA      = flag.Bool("with-wlansta", false, "retrieves connected wlan station metrics")
+	withWlanIF       = flag.Bool("with-wlanif", false, "retrieves wlan interface metrics")
+	withCapsman      = flag.Bool("with-capsman", false, "retrieves capsman station metrics")
+	withMonitor      = flag.Bool("with-monitor", false, "retrieves ethernet interface monitor info")
+	withIpsec        = flag.Bool("with-ipsec", false, "retrieves ipsec metrics")
+	withLte          = flag.Bool("with-lte", false, "retrieves lte metrics")
+	withNetwatch     = flag.Bool("with-netwatch", false, "retrieves netwatch metrics")
+	withCloud        = flag.Bool("with-cloud", false, "retrives cloud services stats")
+	withVPNHealth    = flag.Bool("with-vpn-health", false, "retrieves VPN health scheduler state (tunnels from config file)")
 
 	cfg *config.Config
 
@@ -214,7 +214,9 @@ func collectorOptions() []collector.Option {
 		opts = append(opts, collector.WithBGP())
 	}
 
-	if *withRoutes || cfg.Features.Routes {
+	if *withRoutesDetail || cfg.Features.RoutesDetail {
+		opts = append(opts, collector.WithRoutesDetail())
+	} else if *withRoutes || cfg.Features.Routes {
 		opts = append(opts, collector.WithRoutes())
 	}
 
@@ -289,6 +291,10 @@ func collectorOptions() []collector.Option {
 
 	if *withCloud || cfg.Features.Cloud {
 		opts = append(opts, collector.WithCloud())
+	}
+
+	if *withVPNHealth || cfg.Features.VPNHealth {
+		opts = append(opts, collector.WithVPNHealth(cfg.VPNHealth))
 	}
 
 	if *timeout != collector.DefaultTimeout {

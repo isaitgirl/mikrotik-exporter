@@ -65,7 +65,14 @@ func WithBGP() Option {
 // WithRoutes enables routing table metrics
 func WithRoutes() Option {
 	return func(c *collector) {
-		c.collectors = append(c.collectors, newRoutesCollector())
+		c.collectors = append(c.collectors, newRoutesCollector(false))
+	}
+}
+
+// WithRoutesDetail enables per-route metrics for non-BGP routes.
+func WithRoutesDetail() Option {
+	return func(c *collector) {
+		c.collectors = append(c.collectors, newRoutesCollector(true))
 	}
 }
 
@@ -207,6 +214,13 @@ func WithNetwatch() Option {
 func WithCloud() Option {
 	return func(c *collector) {
 		c.collectors = append(c.collectors, newCloudCollector())
+	}
+}
+
+// WithVPNHealth enables metrics for tunnels managed by a RouterOS health scheduler
+func WithVPNHealth(cfg config.VPNHealth) Option {
+	return func(c *collector) {
+		c.collectors = append(c.collectors, newVPNHealthCollector(cfg))
 	}
 }
 
@@ -399,7 +413,7 @@ func (c *collector) connect(d *config.Device) (*routeros.Client, error) {
 	}
 	log.WithField("device", d.Name).Debug("done dialing")
 
-	client, err := routeros.NewClient(conn)
+	client, err := routeros.NewClient(newAPIFilterConn(conn))
 	if err != nil {
 		return nil, err
 	}

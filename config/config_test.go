@@ -32,6 +32,14 @@ func TestShouldParse(t *testing.T) {
 	assertFeature("Lte", c.Features.Lte, t)
 	assertFeature("Netwatch", c.Features.Netwatch, t)
 	assertFeature("Cloud", c.Features.Cloud, t)
+	assertFeature("VPNHealth", c.Features.VPNHealth, t)
+
+	if c.VPNHealth.Prefix != "aws_prdvpc" || c.VPNHealth.SummaryAddress != "198.18.0.10" || len(c.VPNHealth.Tunnels) != 2 || len(c.VPNHealth.Devices) != 1 {
+		t.Fatalf("unexpected vpn_health config: %+v", c.VPNHealth)
+	}
+	if u1 := c.VPNHealth.Tunnels[1]; u1.Name != "u1" || u1.Provider != "unifique" || u1.StateAddress != "198.18.0.13" || u1.RemoteAddress != "3.21.255.11" {
+		t.Fatalf("unexpected tunnel: %+v", u1)
+	}
 }
 
 func loadTestFile(t *testing.T) []byte {

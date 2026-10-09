@@ -41,6 +41,14 @@ func (c *bgpCollector) describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *bgpCollector) collect(ctx *collectorContext) error {
+	major, err := routerOSMajor(ctx)
+	if err != nil {
+		return c.logError(ctx, err)
+	}
+	if major >= 7 {
+		return c.collectV7(ctx)
+	}
+
 	stats, err := c.fetch(ctx)
 	if err != nil {
 		return err
@@ -53,14 +61,50 @@ func (c *bgpCollector) collect(ctx *collectorContext) error {
 	return nil
 }
 
+// collectV7 exports only up and prefix-count: v7 sessions have no update/withdrawn counters.
+func (c *bgpCollector) collectV7(ctx *collectorContext) error {
+	connections, err := ctx.client.Run("/routing/bgp/connection/print", "=.proplist=name,remote.as")
+	if err != nil {
+		return c.logError(ctx, err)
+	}
+	sessions, err := ctx.client.Run("/routing/bgp/session/print", "=.proplist=name,remote.as,established,prefix-count")
+	if err != nil {
+		return c.logError(ctx, err)
+	}
+
+	stats := map[string]map[string]string{}
+	for _, re := range connections.Re {
+		stats[re.Map["name"]] = map[string]string{"remote-as": re.Map["remote.as"]}
+	}
+	for _, re := range sessions.Re {
+		if re.Map["established"] != "true" {
+			continue
+		}
+		stats[sessionConnection(re.Map["name"])] = map[string]string{
+			"remote-as": re.Map["remote.as"], "state": "established", "prefix-count": re.Map["prefix-count"],
+		}
+	}
+	for session, m := range stats {
+		re := &proto.Sentence{Map: m}
+		for _, p := range []string{"state", "prefix-count"} {
+			c.collectMetricForProperty(p, session, m["remote-as"], re, ctx)
+		}
+	}
+	return nil
+}
+
+func (c *bgpCollector) logError(ctx *collectorContext, err error) error {
+	log.WithFields(log.Fields{
+		"device": ctx.device.Name,
+		"error":  err,
+	}).Error("error fetching bgp metrics")
+	return err
+}
+
 func (c *bgpCollector) fetch(ctx *collectorContext) ([]*proto.Sentence, error) {
 	reply, err := ctx.client.Run("/routing/bgp/peer/print", "=.proplist="+strings.Join(c.props, ","))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"device": ctx.device.Name,
-			"error":  err,
-		}).Error("error fetching bgp metrics")
-		return nil, err
+		return nil, c.logError(ctx, err)
 	}
 
 	return reply.Re, nil
